@@ -1,0 +1,87 @@
+
+public void garak_DBinsert(String base_code, String company_id, String item_code, String garak_name, String garak_code, String garak_rank, String garak_unit, String date) {
+		try {
+			Map<String, Object> commandMap = new HashMap<String, Object>();
+			
+			String sysdate = date.replace("-", "");	// 현재날짜(yyyyMMdd)
+			String sysdate2 = date;	// 현재날짜(yyyy-MM-dd)
+			
+			/*# 1. 파싱할 URL 준비
+			- 먼저 파싱할 URL이 필요하다. 대부분 바로 API를 이용할 수는 없고, 각 사이트에 API키를 요청하여 이용할 수 있다.*/
+			String url = "https://www.garak.co.kr/publicdata/dataOpen.do?" + 
+						"id=${id}&passwd={passwd}&dataid=data4" + 
+						"&pagesize=10" + 
+						"&pageidx=1&portal.templet=false" + 
+						"&p_ymd=" + sysdate +
+						"&p_jymd=" + sysdate +
+						"&d_cd=2" + 
+						"&p_jjymd=" + sysdate +
+						"&p_pos_gubun=1" + 
+						"&pum_nm=" + garak_name;
+			
+			/*# 2. 페이지에 접근해줄 Document객체 생성
+			 - 여기서 생성한 document객체를 통해 파싱할 url의 요소를 읽어 들인다.
+			doc.getDocumentElement().getNodeName())를 출력하면 위 XML의 최상위 tag값을 가져온다. 여기서는 <result>가 최상위 tag값이다.*/
+			DocumentBuilderFactory dbFactoty = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder = dbFactoty.newDocumentBuilder();
+			Document doc = dBuilder.parse(url);
+			
+			doc.getDocumentElement().normalize();
+			
+			/*# 3. 파싱할 정보가 있는 tag에 접근
+			- 여기서 파싱할 데이터는 <baseinfo>라는 tag안에 있다. 여기로 접근해야 한다.
+			- 그려면 nList에 <baseinfo>태그가 하나씩 담기게 된고 getLength()를 통해 리스트의 수를 확인할 수 있다.*/
+			
+			NodeList nList = doc.getElementsByTagName("list");
+
+			/*# 4. list에 담긴 데이터 출력하기
+			- 위에 담긴 list를 반복문을 이용하여 출력한다.
+			- getTextContent() : 전체 정보 
+			- getTagValue("tag", element) : 입력한 tag 정보( 따로 메소드를 정의해줘야 한다. 맨 아래 전체소스코드에서 확인)*/
+			for(int temp = 0; temp < nList.getLength(); temp++){
+				Node nNode = nList.item(temp);
+				if(nNode.getNodeType() == Node.ELEMENT_NODE){
+					Element eElement = (Element) nNode;
+					
+					String GarakApi_item_name = getTagValue("PUM_NM_A", eElement);			// [GARAK_API] (1-1) 품목명
+					String GarakApi_co_item_code = getTagValue("PUM_CD", eElement);			// [GARAK_API] (2-1) 품목코드
+					String GarakApi_item_rank = getTagValue("G_NAME_A", eElement);			// [GARAK_API] (2-2) 등급
+					String GarakApi_unit = getTagValue("U_NAME", eElement);					// [GARAK_API] (2-3) 거래단위수량
+					String GarakApi_price = getTagValue("AV_P_A", eElement);				// [GARAK_API] (insert) 평균가격
+					
+					// * < TEST 용도 > local에서는 문제가 없으나, 서버에서는 이상함...(마치 chrome에서는 xml 파일이 읽히는 반면, explore에서는 xml파일을 불러들이지 못한다.)
+					/*System.out.println(sysdate + ">>>" + GarakApi_item_name + "/" + GarakApi_co_item_code + "/" + GarakApi_item_rank + "/" + GarakApi_unit + "/" + GarakApi_price);
+					System.out.println(sysdate + "-" + URLDecoder.decode(garak_name, "UTF-8") + " : " + GarakApi_item_name + " > " + URLDecoder.decode(garak_name, "UTF-8").equals(GarakApi_item_name.toString()));
+					System.out.println(sysdate + "-" + garak_code.toString() + " : " + GarakApi_co_item_code + " > " + garak_code.toString().equals(GarakApi_co_item_code.toString()));
+					System.out.println(sysdate + "-" + garak_rank.toString() + " : " + GarakApi_item_rank + " > " + garak_rank.toString().equals(GarakApi_item_rank.toString()));
+					System.out.println(sysdate + "-" + garak_unit.toString() + " : " + GarakApi_unit + " > " + garak_unit.toString().replace(" ", "").equals(GarakApi_unit.toString().replace(" ", "")));
+					System.out.println("---------------------------------------------------------");
+					*/
+					
+					if(URLDecoder.decode(garak_name, "UTF-8").equals(GarakApi_item_name.toString())
+					&& garak_code.toString().equals(GarakApi_co_item_code.toString())
+					&& garak_rank.toString().equals(GarakApi_item_rank.toString())
+					&& garak_unit.toString().replace(" ", "").equals(GarakApi_unit.toString().replace(" ", "")))
+					{
+						// < 단가 Table에 들어갈 정보 >
+						commandMap.put("BASE_CODE", base_code);							// 품목코드
+						commandMap.put("COMPANY_ID", company_id);			// 회사명
+						commandMap.put("ITEM_CODE", item_code);				// 회사품목코드
+						commandMap.put("APPLY_DATE", sysdate2);				// 현재날짜
+						commandMap.put("IN_PRICE", GarakApi_price);			// 평균가격
+						commandMap.put("DATE", date);						// 날짜
+						
+						if(service.garak_price_select(commandMap).isEmpty()) {
+							// 단가정보가 없으면 <insert>							
+							service.garak_price_insert(commandMap);
+						}
+						else {
+							
+						}
+					}
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}

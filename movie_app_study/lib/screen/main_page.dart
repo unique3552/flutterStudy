@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:html';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -16,17 +17,23 @@ class _AuthState extends State<MainPage> {
     super.initState();
   }
 
-  Future UserModel_Dio(int user_id) async {
+  Future MovieModel_Dio(String searchDt) async {
     Response response;
     Dio dio = new Dio();
     try {
       response = await dio.get(
-          'http://kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.xml?key=f5eef3421c602c6cb7ea224104795888&targetDt=20210401',
+          'http://kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.xml?key=f5eef3421c602c6cb7ea224104795888',
           queryParameters: {
+            'targetDt' : searchDt,
           }
       );
       print("[1] >>>>>\n" + response.data.toString());
-      print("[2] >>>>>\n" + response.statusCode.toString());
+      print("[2] >>>>>\n" + response.data);
+
+      Document test = response.data;
+      NodeList nList = test.getElementsByTagName("dailyBoxOffice");
+      print("[TEST_1] >>>>>\n" + nList.toString());
+      print("[TEST_2] >>>>>\n" + nList[0].toString());
 
       if (response.statusCode == 200) {
         // final jsonBody =
@@ -60,7 +67,7 @@ class _AuthState extends State<MainPage> {
       body: Column(
         children: <Widget>[
           FutureBuilder(
-            future: UserModel_Dio(2),
+            future: MovieModel_Dio('20210409'),
             builder: (context, snapshot) {
               if (snapshot.hasData) {
                 print('111');
