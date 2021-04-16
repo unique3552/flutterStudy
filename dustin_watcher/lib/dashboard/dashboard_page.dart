@@ -17,19 +17,7 @@ class DashboardPage extends StatelessWidget {
     return GetBuilder<DashboardController>(
       builder: (controller) {
         return Scaffold(
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              SafeArea(
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(child: Text('N', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.red),), onPressed: (){},),
-                      TextButton(child: Text('TV programs', style: TextStyle(color: Colors.black),), onPressed: (){},),
-                      TextButton(child: Text('Movies', style: TextStyle(color: Colors.black),), onPressed: (){},)
-                    ]
-                ),
-              ),
+          body:
               SafeArea(
                     child: IndexedStack(
                       index: controller.tabIndex,
@@ -41,8 +29,6 @@ class DashboardPage extends StatelessWidget {
                       ],
                     ),
                   ),
-            ],
-          ),
           bottomNavigationBar: BottomNavigationBar(
             unselectedItemColor: Colors.black,
             selectedItemColor: Colors.redAccent,
